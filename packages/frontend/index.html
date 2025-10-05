@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>XOS</title>
+    <style>
+      #initial-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #0f172a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        z-index: 9999;
+      }
+      
+      .logo-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 2rem;
+      }
+      
+      .logo-x {
+        font-size: 4rem;
+        font-weight: 800;
+        color: #3b82f6;
+      }
+      
+      .logo-os {
+        font-size: 4rem;
+        font-weight: 300;
+        color: #94a3b8;
+        margin-left: 0.5rem;
+        letter-spacing: -0.05em;
+      }
+      
+      .loading-text {
+        font-size: 1.1rem;
+        color: #cbd5e1;
+        font-weight: 400;
+        letter-spacing: 0.05em;
+        margin-bottom: 2rem;
+      }
+      
+      .progress-container {
+        width: 300px;
+        height: 4px;
+        background: rgba(148, 163, 184, 0.2);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      
+      .progress-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        border-radius: 2px;
+        transition: width 0.3s ease;
+      }
+      
+      /* Static background */
+      body {
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="initial-loading">
+      <div class="logo-container">
+        <div class="logo-x">x</div>
+        <div class="logo-os">OS</div>
+      </div>
+      
+      <div class="loading-text">Initializing system...</div>
+      
+      <div class="progress-container">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <script>
+      // Simple progress simulation
+      const progressBar = document.getElementById('progress-bar');
+      let progress = 0;
+      
+      const interval = setInterval(() => {
+        progress += Math.random() * 10;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(interval);
+        }
+        progressBar.style.width = progress + '%';
+      }, 200);
+    </script>
+  </body>
+</html>

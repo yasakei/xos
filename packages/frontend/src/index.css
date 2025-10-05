@@ -1,0 +1,157 @@
+/* packages/frontend/src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    /* Default Light Theme */
+    --primary: #007aff;
+    --text-primary: #000000;
+    --text-secondary: #3c3c43;
+    --background: #f2f2f7;
+    --surface-bg-glass: rgba(255, 255, 255, 0.5);
+    --surface-bg-solid: #ffffff;
+    --error: #ef4444;
+}
+
+.dark {
+    /* Default Dark Theme */
+    --primary: #0a84ff;
+    --text-primary: #ffffff;
+    --text-secondary: #ebebf5;
+    --background: #1c1c1e;
+    --surface-bg-glass: rgba(44, 44, 46, 0.5);
+    --surface-bg-solid: #2c2c2e;
+    --error: #ef4444;
+}
+
+/* FIX: Add background color for the dark theme icon preview */
+.dark-icon-bg {
+    background-color: #ffffff;
+}
+
+.ocean {
+    --primary: #5ac8fa; /* Bright Blue */
+    --text-primary: #ffffff;
+    --text-secondary: #ebebf5;
+    --background: #001e3c; /* Deep Ocean Blue */
+    --surface-bg-glass: rgba(10, 50, 80, 0.6);
+    --surface-bg-solid: #0d2c4a;
+    --error: #ef4444;
+}
+
+.sunset {
+    --primary: #ff9500; /* Orange */
+    --text-primary: #ffffff;
+    --text-secondary: #fcebe3;
+    --background: #4a1d56; /* Deep Purple */
+    --surface-bg-glass: rgba(80, 40, 60, 0.6);
+    --surface-bg-solid: #4d2b59;
+    --error: #ef4444;
+}
+
+.graphite {
+    --primary: #a855f7; /* Vibrant Purple */
+    --text-primary: #e6edf3;
+    --text-secondary: #7d8590;
+    --background: #1e2227;
+    --surface-bg-glass: rgba(34, 39, 46, 0.85);
+    --surface-bg-solid: #22272e;
+    --error: #ef4444;
+}
+
+body {
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+        sans-serif;
+    background-color: var(--background);
+    color: var(--text-primary);
+    overflow: hidden;
+    user-select: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.liquid-glass {
+    background-color: var(--surface-bg-glass);
+    backdrop-filter: blur(50px) saturate(150%);
+    -webkit-backdrop-filter: blur(50px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.solid-surface {
+    background-color: var(--surface-bg-solid);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+@keyframes shake {
+    10%,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+    20%,
+    80% {
+        transform: translate3d(2px, 0, 0);
+    }
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+    40%,
+    60% {
+        transform: translate3d(4px, 0, 0);
+    }
+}
+.animate-shake {
+    animation: shake 0.82s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.animate-fade-in {
+    animation: fade-in 0.3s ease-out forwards;
+}
+
+/* Reduced transparency styles */
+.reduce-transparency .liquid-glass {
+    background-color: var(--surface-bg-solid);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.reduce-transparency ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.reduce-transparency ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.6);
+}

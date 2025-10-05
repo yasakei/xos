@@ -1,0 +1,1283 @@
+// packages/frontend/src/apps/developer-settings/DeveloperSettingsApp.tsx
+import React, { useState, useEffect, useRef } from "react";
+import { 
+  Code2, 
+  Monitor, 
+  Settings2, 
+  Info, 
+  Terminal,
+  RefreshCw,
+  Download,
+  AlertTriangle,
+  Activity,
+  Bug,
+  MessageSquare,
+  Bell,
+  Palette,
+  Cpu,
+  Zap,
+  Database,
+  HardDrive,
+  Clock,
+  BarChart3,
+  Wifi,
+  WifiOff,
+  Upload,
+  DownloadCloud,
+  Sliders,
+  FileJson,
+  Share2,
+  Eye,
+  EyeOff,
+  FlaskConical,
+  Gauge,
+  Timer,
+  Network,
+  Play,
+  Square
+} from "lucide-react";
+import { useUiStore } from "../../core/theme-engine/themeStore";
+import { useWindowStore } from "../../store/windowStore";
+import { useDialog } from "../../core/dialog/useDialog";
+import { useNotification } from "../../core/notification/useNotification";
+import { useSystemStats } from "../../hooks/useSystemStats";
+
+// Helper function to simulate network delay
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function for debug logging
+const debugLog = (message: string, data?: any) => {
+  if (typeof window !== 'undefined' && (window as any).debugLoggingEnabled) {
+    console.log(`[DEBUG] ${new Date().toISOString()}: ${message}`, data);
+  }
+};
+
+const DeveloperSettingsApp: React.FC = () => {
+  const { 
+    performanceMode, 
+    setPerformanceMode,
+    maxWindows
+  } = useWindowStore();
+  
+  const { 
+    enableAnimations, 
+    reduceTransparency, 
+    themeId,
+    surfaceStyle,
+    setPerformanceMode: setUiPerformanceMode 
+  } = useUiStore();
+  
+  const { showDialog } = useDialog();
+  const { showNotification } = useNotification();
+  const { stats: systemStats, isLoading: systemStatsLoading } = useSystemStats();
+  
+  const [activeTab, setActiveTab] = useState("performance");
+  
+  // New state variables for additional features
+  const [debugLogging, setDebugLogging] = useState(false);
+  const [networkSimulation, setNetworkSimulation] = useState<'none' | 'slow' | 'offline'>('none');
+  const [experimentalFeatures, setExperimentalFeatures] = useState(false);
+  const [customTheme, setCustomTheme] = useState({
+    primary: '#3b82f6',
+    secondary: '#64748b',
+    background: '#0f172a'
+  });
+  const [profilingEnabled, setProfilingEnabled] = useState(false);
+  const [profilingData, setProfilingData] = useState<any[]>([]);
+  const [lastProfile, setLastProfile] = useState<string | null>(null);
+  const profilingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Simulate network conditions
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    
+    // Enable/disable debug logging
+    (window as any).debugLoggingEnabled = debugLogging;
+    
+    if (networkSimulation === 'offline') {
+      // @ts-ignore
+      window.fetch = () => Promise.reject(new Error('Network error: Offline mode enabled'));
+    } else if (networkSimulation === 'slow') {
+      // @ts-ignore
+      window.fetch = function(...args) {
+        // Add delay to simulate slow network
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve(originalFetch.apply(this, args));
+          }, 1000 + Math.random() * 2000);
+        });
+      };
+    } else {
+      // @ts-ignore
+      window.fetch = originalFetch;
+    }
+    
+    // Cleanup function to restore original fetch
+    return () => {
+      // @ts-ignore
+      window.fetch = originalFetch;
+    };
+  }, [networkSimulation, debugLogging]);
+  
+  // Cleanup function to clear profiling interval
+  useEffect(() => {
+    return () => {
+      if (profilingIntervalRef.current) {
+        clearInterval(profilingIntervalRef.current);
+      }
+    };
+  }, []);
+  
+  // Performance mode options
+  const performanceModes = [
+    { id: 'high', name: 'High Performance', desc: 'Maximum performance, higher resource usage' },
+    { id: 'balanced', name: 'Balanced', desc: 'Good performance with moderate resource usage' },
+    { id: 'low', name: 'Power Saver', desc: 'Reduced performance, lowest resource usage' }
+  ];
+
+  // Theme options
+  const themes = [
+    { id: 'light', name: 'Light' },
+    { id: 'dark', name: 'Dark' },
+    { id: 'ocean', name: 'Ocean' },
+    { id: 'sunset', name: 'Sunset' },
+    { id: 'graphite', name: 'Graphite' }
+  ];
+
+  // Surface styles
+  const surfaceStyles = [
+    { id: 'glass', name: 'Glass' },
+    { id: 'solid', name: 'Solid' }
+  ];
+
+  // Network simulation options
+  const networkOptions = [
+    { id: 'none', name: 'Normal', desc: 'Standard network conditions' },
+    { id: 'slow', name: 'Slow 3G', desc: 'Simulate slow network conditions' },
+    { id: 'offline', name: 'Offline', desc: 'Simulate offline mode' }
+  ];
+
+  // Handle performance mode change
+  const handlePerformanceModeChange = (mode: 'high' | 'balanced' | 'low') => {
+    setPerformanceMode(mode);
+    debugLog('Performance mode changed', { mode });
+    showNotification().info("Performance Mode Updated", `Performance mode changed to ${mode}`);
+  };
+
+  // Handle animation toggle
+  const handleAnimationToggle = () => {
+    setUiPerformanceMode(!enableAnimations, reduceTransparency);
+    debugLog('Animation setting toggled', { enableAnimations: !enableAnimations });
+    showNotification().info("Animation Setting", `Animations ${!enableAnimations ? 'enabled' : 'disabled'}`);
+  };
+
+  // Handle transparency toggle
+  const handleTransparencyToggle = () => {
+    setUiPerformanceMode(enableAnimations, !reduceTransparency);
+    debugLog('Transparency setting toggled', { reduceTransparency: !reduceTransparency });
+    showNotification().info("Transparency Setting", `Transparency ${!reduceTransparency ? 'reduced' : 'normalized'}`);
+  };
+
+  // Handle theme change
+  const handleThemeChange = (theme: string) => {
+    useUiStore.getState().updateUi({ themeId: theme });
+    debugLog('Theme changed', { theme });
+    showNotification({
+      title: "Theme Updated",
+      message: `Theme changed to ${theme}`,
+      type: "info"
+    });
+  };
+
+  // Handle surface style change
+  const handleSurfaceStyleChange = (style: 'glass' | 'solid') => {
+    useUiStore.getState().updateUi({ surfaceStyle: style });
+    debugLog('Surface style changed', { style });
+    showNotification({
+      title: "Surface Style Updated",
+      message: `Surface style changed to ${style}`,
+      type: "info"
+    });
+  };
+
+  // Handle debug logging toggle
+  const handleDebugLoggingToggle = () => {
+    setDebugLogging(!debugLogging);
+    debugLog('Debug logging toggled', { enabled: !debugLogging });
+    showNotification({
+      title: "Debug Logging",
+      message: `Debug logging has been ${!debugLogging ? 'enabled' : 'disabled'}.`,
+      type: debugLogging ? "warning" : "success"
+    });
+  };
+
+  // Handle network simulation change
+  const handleNetworkSimulationChange = (mode: 'none' | 'slow' | 'offline') => {
+    setNetworkSimulation(mode);
+    const messages = {
+      none: "Network simulation disabled. Back to normal network conditions.",
+      slow: "Slow network simulation enabled. Network requests will be throttled.",
+      offline: "Offline mode simulation enabled. Network requests will fail."
+    };
+    
+    debugLog('Network simulation changed', { mode });
+    showNotification({
+      title: "Network Simulation",
+      message: messages[mode],
+      type: mode === 'offline' ? "warning" : mode === 'slow' ? "info" : "success"
+    });
+  };
+
+  // Handle experimental features toggle
+  const handleExperimentalFeaturesToggle = () => {
+    if (!experimentalFeatures) {
+      // Show warning before enabling
+      showDialog().confirm("Experimental Features", "Enabling experimental features may cause instability. Are you sure you want to proceed?")
+        .then((result) => {
+          if (result) {
+            setExperimentalFeatures(true);
+            debugLog('Experimental features toggled', { enabled: true });
+            showNotification().warning("Experimental Features", "Experimental features have been enabled. Restart the application for full effect.");
+          }
+        });
+    } else {
+      // Just disable without confirmation
+      setExperimentalFeatures(false);
+      debugLog('Experimental features toggled', { enabled: false });
+      showNotification().success("Experimental Features", "Experimental features have been disabled.");
+    }
+  };
+
+  // Handle custom theme change
+  const handleCustomThemeChange = (property: string, value: string) => {
+    setCustomTheme({
+      ...customTheme,
+      [property]: value
+    });
+    debugLog('Custom theme color changed', { property, value });
+  };
+
+  // Apply custom theme
+  const applyCustomTheme = () => {
+    useUiStore.getState().updateUi({ 
+      themeId: 'custom',
+      customColors: customTheme
+    });
+    debugLog('Custom theme applied', customTheme);
+    showNotification().success("Custom Theme Applied", "Your custom theme has been applied successfully.");
+  };
+
+  // Export settings
+  const exportSettings = () => {
+    const settings = {
+      performanceMode,
+      enableAnimations,
+      reduceTransparency,
+      themeId,
+      surfaceStyle,
+      debugLogging,
+      networkSimulation,
+      experimentalFeatures,
+      customTheme,
+      exportDate: new Date().toISOString()
+    };
+    
+    const dataStr = JSON.stringify(settings, null, 2);
+    const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
+    
+    const exportFileDefaultName = `xos-dev-settings-${new Date().toISOString().slice(0, 10)}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    debugLog('Settings exported', { fileName: exportFileDefaultName });
+    showNotification({
+      title: "Settings Exported",
+      message: "Developer settings have been exported successfully.",
+      type: "success"
+    });
+  };
+
+  // Import settings
+  const importSettings = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const settings = JSON.parse(e.target?.result as string);
+          
+          // Apply imported settings
+          setPerformanceMode(settings.performanceMode || 'balanced');
+          setUiPerformanceMode(
+            settings.enableAnimations !== undefined ? settings.enableAnimations : true,
+            settings.reduceTransparency !== undefined ? settings.reduceTransparency : false
+          );
+          useUiStore.getState().updateUi({ 
+            themeId: settings.themeId || 'dark',
+            surfaceStyle: settings.surfaceStyle || 'glass'
+          });
+          
+          setDebugLogging(settings.debugLogging || false);
+          setNetworkSimulation(settings.networkSimulation || 'none');
+          setExperimentalFeatures(settings.experimentalFeatures || false);
+          setCustomTheme(settings.customTheme || {
+            primary: '#3b82f6',
+            secondary: '#64748b',
+            background: '#0f172a'
+          });
+          
+          debugLog('Settings imported', settings);
+          showNotification({
+            title: "Settings Imported",
+            message: "Developer settings have been imported successfully.",
+            type: "success"
+          });
+        } catch (error) {
+          debugLog('Settings import failed', error);
+          showNotification({
+            title: "Import Failed",
+            message: "Failed to import settings. Please check the file format.",
+            type: "error"
+          });
+        }
+      };
+      reader.readAsText(file);
+    };
+    
+    input.click();
+  };
+
+  // Start profiling
+  const startProfiling = () => {
+    if (profilingIntervalRef.current) {
+      clearInterval(profilingIntervalRef.current);
+    }
+    
+    setProfilingEnabled(true);
+    const startTime = Date.now();
+    setLastProfile(new Date().toLocaleTimeString());
+    
+    // Simulate profiling data collection
+    profilingIntervalRef.current = setInterval(() => {
+      if (!profilingEnabled) {
+        if (profilingIntervalRef.current) {
+          clearInterval(profilingIntervalRef.current);
+        }
+        return;
+      }
+      
+      setProfilingData(prev => {
+        const newData = [
+          ...prev.slice(-19), // Keep only last 20 entries
+          {
+            timestamp: Date.now() - startTime,
+            cpu: Math.floor(Math.random() * 100),
+            memory: Math.floor(Math.random() * 100),
+            render: Math.floor(Math.random() * 50),
+            network: Math.floor(Math.random() * 30)
+          }
+        ];
+        return newData;
+      });
+    }, 500);
+    
+    debugLog('Performance profiling started');
+    showNotification({
+      title: "Performance Profiling",
+      message: "Performance profiling has started. Data will be collected in real-time.",
+      type: "info"
+    });
+  };
+
+  // Stop profiling
+  const stopProfiling = () => {
+    setProfilingEnabled(false);
+    if (profilingIntervalRef.current) {
+      clearInterval(profilingIntervalRef.current);
+      profilingIntervalRef.current = null;
+    }
+    debugLog('Performance profiling stopped');
+    showNotification({
+      title: "Performance Profiling",
+      message: "Performance profiling has stopped.",
+      type: "success"
+    });
+  };
+
+  // Test API call with network simulation
+  const testApiCall = async () => {
+    debugLog('Testing API call');
+    showNotification({
+      title: "API Test",
+      message: "Making test API call...",
+      type: "info"
+    });
+    
+    try {
+      // Test different API endpoints based on network simulation
+      let url = '/api/developer/test';
+      if (networkSimulation === 'slow') {
+        url = '/api/developer/slow';
+      } else if (networkSimulation === 'offline') {
+        url = '/api/developer/error';
+      }
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (response.ok) {
+        debugLog('API call completed', { status: response.status, data });
+        showNotification({
+          title: "API Test Success",
+          message: `API call completed: ${data.message}`,
+          type: "success"
+        });
+      } else {
+        throw new Error(data.message || `API call failed with status ${response.status}`);
+      }
+    } catch (error) {
+      debugLog('API call failed', error);
+      showNotification({
+        title: "API Test Failed",
+        message: `API call failed: ${(error as Error).message}`,
+        type: "error"
+      });
+    }
+  };
+  
+  // Test slow API call
+  const testSlowApiCall = async () => {
+    debugLog('Testing slow API call');
+    showNotification({
+      title: "Slow API Test",
+      message: "Making slow API call...",
+      type: "info"
+    });
+    
+    try {
+      const response = await fetch('/api/developer/slow');
+      const data = await response.json();
+      
+      if (response.ok) {
+        debugLog('Slow API call completed', { status: response.status, data });
+        showNotification({
+          title: "Slow API Test Success",
+          message: `Slow API call completed after ${data.delay}`,
+          type: "success"
+        });
+      } else {
+        throw new Error(data.message || `Slow API call failed with status ${response.status}`);
+      }
+    } catch (error) {
+      debugLog('Slow API call failed', error);
+      showNotification({
+        title: "Slow API Test Failed",
+        message: `Slow API call failed: ${(error as Error).message}`,
+        type: "error"
+      });
+    }
+  };
+  
+  // Test error API call
+  const testErrorApiCall = async () => {
+    debugLog('Testing error API call');
+    showNotification({
+      title: "Error API Test",
+      message: "Making error API call...",
+      type: "info"
+    });
+    
+    try {
+      const response = await fetch('/api/developer/error');
+      const data = await response.json();
+      
+      if (response.ok) {
+        debugLog('Unexpected success in error API call', { status: response.status, data });
+        showNotification({
+          title: "Unexpected Success",
+          message: "Expected error but got success response",
+          type: "warning"
+        });
+      } else {
+        throw new Error(data.message || `API call failed with status ${response.status}`);
+      }
+    } catch (error) {
+      debugLog('Error API call failed as expected', error);
+      showNotification({
+        title: "Error API Test Completed",
+        message: `Error API call failed as expected: ${(error as Error).message}`,
+        type: "success"
+      });
+    }
+  };
+
+  // Test dialog
+  const testDialog = () => {
+    debugLog('Test dialog opened');
+    showDialog().confirm("Developer Test Dialog", "This is a test dialog from the Developer Settings panel. You can use dialogs to show important information or get user input.")
+      .then((result) => {
+        debugLog('Test dialog closed', { result });
+        showNotification().info("Dialog Test", `Dialog result: ${result ? 'Confirmed' : 'Cancelled'}`);
+      });
+  };
+
+  // Test notification
+  const testNotification = (type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
+    debugLog('Test notification shown', { type });
+    const messages = {
+      info: { title: "Test Notification", message: "This is an info notification. Developer tools are working correctly!" },
+      success: { title: "Test Notification", message: "This is a success notification. Developer tools are working correctly!" },
+      warning: { title: "Test Notification", message: "This is a warning notification. Developer tools are working correctly!" },
+      error: { title: "Test Notification", message: "This is an error notification. Developer tools are working correctly!" }
+    };
+    
+    const { title, message } = messages[type];
+    showNotification()[type](title, message);
+  };
+
+  // Test error notification
+  const testErrorNotification = () => {
+    debugLog('Test error notification shown');
+    showNotification().error("Error Simulation", "This is a simulated error notification for testing purposes.");
+  };
+
+  // Test warning notification
+  const testWarningNotification = () => {
+    debugLog('Test warning notification shown');
+    showNotification().warning("Warning Simulation", "This is a simulated warning notification for testing purposes.");
+  };
+
+  // Test success notification
+  const testSuccessNotification = () => {
+    debugLog('Test success notification shown');
+    showNotification().success("Success Simulation", "This is a simulated success notification for testing purposes.");
+  };
+
+  // Simulate system stats update (now uses real-time data from the hook)
+  const updateSystemStats = () => {
+    // With the new hook, stats are updated in real-time
+    // This function now just triggers a notification to show that stats are being monitored
+    debugLog('System stats refresh requested');
+    showNotification().info("System Stats", "System stats are monitored in real-time. Values update automatically.");
+  };
+
+  // Reset all settings
+  const resetSettings = () => {
+    debugLog('Reset settings requested');
+    showDialog().confirm("Reset Developer Settings", "Are you sure you want to reset all developer settings to their defaults? This cannot be undone.")
+      .then((result) => {
+        if (result) {
+          // Reset performance settings
+          setPerformanceMode('balanced');
+          setUiPerformanceMode(true, false);
+          
+          // Reset theme settings
+          useUiStore.getState().updateUi({ 
+            themeId: 'dark',
+            surfaceStyle: 'glass'
+          });
+          
+          // Reset new settings
+          setDebugLogging(false);
+          setNetworkSimulation('none');
+          setExperimentalFeatures(false);
+          setCustomTheme({
+            primary: '#3b82f6',
+            secondary: '#64748b',
+            background: '#0f172a'
+          });
+          setProfilingEnabled(false);
+          setProfilingData([]);
+          setLastProfile(null);
+          
+          if (profilingIntervalRef.current) {
+            clearInterval(profilingIntervalRef.current);
+            profilingIntervalRef.current = null;
+          }
+          
+          debugLog('Settings reset to defaults');
+          showNotification().success("Settings Reset", "Developer settings have been reset to defaults.");
+        }
+      });
+  };
+
+  // Clear cache
+  const clearCache = () => {
+    debugLog('Clear cache requested');
+    showDialog().confirm("Clear Cache", "Are you sure you want to clear the application cache? This may temporarily affect performance.")
+      .then((result) => {
+        if (result) {
+          // In a real app, this would clear the cache
+          debugLog('Cache cleared');
+          showNotification().success("Cache Cleared", "Application cache has been cleared successfully.");
+        }
+      });
+  };
+
+  return (
+    <div className="h-full flex flex-col bg-[var(--background)] text-[color:var(--text-primary)]">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-700">
+        <h1 className="text-2xl font-bold flex items-center">
+          <Code2 className="mr-2" size={24} />
+          Developer Tools
+        </h1>
+        <p className="text-sm text-gray-400 mt-1">
+          Advanced settings and testing tools for developers - v0.3 "Celebi"
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-gray-700 overflow-x-auto">
+        {[
+          { id: "performance", label: "Performance", icon: Monitor },
+          { id: "ui", label: "UI Customization", icon: Palette },
+          { id: "testing", label: "Testing Tools", icon: Bug },
+          { id: "advanced", label: "Advanced", icon: FlaskConical },
+          { id: "system", label: "System Info", icon: Cpu }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            className={`px-4 py-3 font-medium flex items-center whitespace-nowrap ${
+              activeTab === tab.id 
+                ? "border-b-2 border-blue-500 text-blue-400" 
+                : "text-gray-400 hover:text-white"
+            }`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            <tab.icon className="mr-2" size={16} />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto p-4">
+        {/* Performance Tab */}
+        {activeTab === "performance" && (
+          <div className="space-y-6">
+            <section>
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <Zap className="mr-2" size={20} />
+                Performance Settings
+              </h2>
+              
+              <div className="space-y-4">
+                {/* Performance Mode */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3">Performance Mode</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {performanceModes.map((mode) => (
+                      <button
+                        key={mode.id}
+                        className={`p-3 rounded-lg text-left ${
+                          performanceMode === mode.id
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-700 hover:bg-gray-600"
+                        }`}
+                        onClick={() => handlePerformanceModeChange(mode.id as any)}
+                      >
+                        <div className="font-medium">{mode.name}</div>
+                        <div className="text-xs opacity-80 mt-1">{mode.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Animation Settings */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3">Animation & Visual Effects</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Activity className="mr-2" size={18} />
+                        <span>Enable Animations</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={enableAnimations}
+                          onChange={handleAnimationToggle}
+                        />
+                        <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <AlertTriangle className="mr-2" size={18} />
+                        <span>Reduce Transparency</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={reduceTransparency}
+                          onChange={handleTransparencyToggle}
+                        />
+                        <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Window Management */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3">Window Management</h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div>Maximum Windows</div>
+                      <div className="text-sm text-gray-400">Current limit: {maxWindows}</div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button 
+                        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600"
+                        onClick={() => useWindowStore.getState().setPerformanceMode('low')}
+                      >
+                        Low (10)
+                      </button>
+                      <button 
+                        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600"
+                        onClick={() => useWindowStore.getState().setPerformanceMode('balanced')}
+                      >
+                        Med (20)
+                      </button>
+                      <button 
+                        className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600"
+                        onClick={() => useWindowStore.getState().setPerformanceMode('high')}
+                      >
+                        High (30)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* UI Customization Tab */}
+        {activeTab === "ui" && (
+          <div className="space-y-6">
+            <section>
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <Palette className="mr-2" size={20} />
+                UI Customization
+              </h2>
+              
+              <div className="space-y-4">
+                {/* Theme Selection */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3">Theme</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    {themes.map((theme) => (
+                      <button
+                        key={theme.id}
+                        className={`p-3 rounded-lg text-center ${
+                          themeId === theme.id
+                            ? "ring-2 ring-blue-500"
+                            : "bg-gray-700 hover:bg-gray-600"
+                        }`}
+                        onClick={() => handleThemeChange(theme.id)}
+                      >
+                        {theme.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Surface Style */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3">Surface Style</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {surfaceStyles.map((style) => (
+                      <button
+                        key={style.id}
+                        className={`p-3 rounded-lg text-center ${
+                          surfaceStyle === style.id
+                            ? "ring-2 ring-blue-500"
+                            : "bg-gray-700 hover:bg-gray-600"
+                        }`}
+                        onClick={() => handleSurfaceStyleChange(style.id as any)}
+                      >
+                        {style.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Custom Theme */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3">Custom Theme Colors</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm mb-1">Primary Color</label>
+                      <div className="flex items-center">
+                        <input
+                          type="color"
+                          value={customTheme.primary}
+                          onChange={(e) => handleCustomThemeChange('primary', e.target.value)}
+                          className="w-10 h-10 border-0 bg-transparent cursor-pointer"
+                        />
+                        <span className="ml-2 text-sm">{customTheme.primary}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm mb-1">Secondary Color</label>
+                      <div className="flex items-center">
+                        <input
+                          type="color"
+                          value={customTheme.secondary}
+                          onChange={(e) => handleCustomThemeChange('secondary', e.target.value)}
+                          className="w-10 h-10 border-0 bg-transparent cursor-pointer"
+                        />
+                        <span className="ml-2 text-sm">{customTheme.secondary}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm mb-1">Background Color</label>
+                      <div className="flex items-center">
+                        <input
+                          type="color"
+                          value={customTheme.background}
+                          onChange={(e) => handleCustomThemeChange('background', e.target.value)}
+                          className="w-10 h-10 border-0 bg-transparent cursor-pointer"
+                        />
+                        <span className="ml-2 text-sm">{customTheme.background}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    className="mt-4 px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 flex items-center"
+                    onClick={applyCustomTheme}
+                  >
+                    <Palette className="mr-2" size={18} />
+                    Apply Custom Theme
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* Testing Tools Tab */}
+        {activeTab === "testing" && (
+          <div className="space-y-6">
+            <section>
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <Bug className="mr-2" size={20} />
+                Testing Tools
+              </h2>
+              
+              <div className="space-y-4">
+                {/* Dialog Testing */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3 flex items-center">
+                    <MessageSquare className="mr-2" size={18} />
+                    Dialog Testing
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button
+                      className="p-3 bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center justify-center"
+                      onClick={testDialog}
+                    >
+                      <MessageSquare className="mr-2" size={18} />
+                      Test Dialog
+                    </button>
+                    <button
+                      className="p-3 bg-purple-600 rounded-lg hover:bg-purple-700 flex items-center justify-center"
+                      onClick={testApiCall}
+                    >
+                      <Wifi className="mr-2" size={18} />
+                      Test API Call
+                    </button>
+                  </div>
+                </div>
+                
+                {/* API Testing */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3 flex items-center">
+                    <Wifi className="mr-2" size={18} />
+                    API Testing
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <button
+                      className="p-3 bg-green-600 rounded-lg hover:bg-green-700 flex items-center justify-center"
+                      onClick={testSlowApiCall}
+                    >
+                      <Clock className="mr-2" size={18} />
+                      Slow API Test
+                    </button>
+                    <button
+                      className="p-3 bg-yellow-600 rounded-lg hover:bg-yellow-700 flex items-center justify-center"
+                      onClick={testErrorApiCall}
+                    >
+                      <AlertTriangle className="mr-2" size={18} />
+                      Error API Test
+                    </button>
+                    <button
+                      className="p-3 bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center justify-center"
+                      onClick={testApiCall}
+                    >
+                      <Activity className="mr-2" size={18} />
+                      Standard API Test
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Notification Testing */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3 flex items-center">
+                    <Bell className="mr-2" size={18} />
+                    Notification Testing
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button
+                      className="p-3 bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center justify-center"
+                      onClick={() => testNotification('info')}
+                    >
+                      <Bell className="mr-2" size={18} />
+                      Info
+                    </button>
+                    <button
+                      className="p-3 bg-green-600 rounded-lg hover:bg-green-700 flex items-center justify-center"
+                      onClick={testSuccessNotification}
+                    >
+                      <Bell className="mr-2" size={18} />
+                      Success
+                    </button>
+                    <button
+                      className="p-3 bg-yellow-600 rounded-lg hover:bg-yellow-700 flex items-center justify-center"
+                      onClick={testWarningNotification}
+                    >
+                      <Bell className="mr-2" size={18} />
+                      Warning
+                    </button>
+                    <button
+                      className="p-3 bg-red-600 rounded-lg hover:bg-red-700 flex items-center justify-center"
+                      onClick={testErrorNotification}
+                    >
+                      <Bell className="mr-2" size={18} />
+                      Error
+                    </button>
+                  </div>
+                </div>
+                
+                {/* System Actions */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3 flex items-center">
+                    <Settings2 className="mr-2" size={18} />
+                    System Actions
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button
+                      className="p-3 bg-purple-600 rounded-lg hover:bg-purple-700 flex items-center justify-center"
+                      onClick={resetSettings}
+                    >
+                      <RefreshCw className="mr-2" size={18} />
+                      Reset Settings
+                    </button>
+                    <button
+                      className="p-3 bg-orange-600 rounded-lg hover:bg-orange-700 flex items-center justify-center"
+                      onClick={clearCache}
+                    >
+                      <Database className="mr-2" size={18} />
+                      Clear Cache
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* Advanced Tab */}
+        {activeTab === "advanced" && (
+          <div className="space-y-6">
+            <section>
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <FlaskConical className="mr-2" size={20} />
+                Advanced Developer Tools
+              </h2>
+              
+              <div className="space-y-4">
+                {/* Debugging Tools */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3 flex items-center">
+                    <Bug className="mr-2" size={18} />
+                    Debugging Tools
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Terminal className="mr-2" size={18} />
+                        <span>Enable Debug Logging</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={debugLogging}
+                          onChange={handleDebugLoggingToggle}
+                        />
+                        <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Eye className="mr-2" size={18} />
+                        <span>Experimental Features</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={experimentalFeatures}
+                          onChange={handleExperimentalFeaturesToggle}
+                        />
+                        <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Network Simulation */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3 flex items-center">
+                    <Network className="mr-2" size={18} />
+                    Network Simulation
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {networkOptions.map((option) => (
+                      <button
+                        key={option.id}
+                        className={`p-3 rounded-lg text-left ${
+                          networkSimulation === option.id
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-700 hover:bg-gray-600"
+                        }`}
+                        onClick={() => handleNetworkSimulationChange(option.id as any)}
+                      >
+                        <div className="font-medium">{option.name}</div>
+                        <div className="text-xs opacity-80 mt-1">{option.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-3 text-sm text-gray-400">
+                    {networkSimulation === 'none' && "Network is operating normally."}
+                    {networkSimulation === 'slow' && "Network requests will be throttled to simulate slow connections."}
+                    {networkSimulation === 'offline' && "Network requests will fail to simulate offline mode."}
+                  </div>
+                </div>
+                
+                {/* Performance Profiling */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3 flex items-center">
+                    <Gauge className="mr-2" size={18} />
+                    Performance Profiling
+                  </h3>
+                  <div className="flex space-x-3 mb-4">
+                    <button
+                      className={`px-4 py-2 rounded flex items-center ${
+                        profilingEnabled 
+                          ? "bg-red-600 hover:bg-red-700" 
+                          : "bg-green-600 hover:bg-green-700"
+                      }`}
+                      onClick={profilingEnabled ? stopProfiling : startProfiling}
+                    >
+                      {profilingEnabled ? (
+                        <>
+                          <Square className="mr-2" size={18} />
+                          Stop Profiling
+                        </>
+                      ) : (
+                        <>
+                          <Play className="mr-2" size={18} />
+                          Start Profiling
+                        </>
+                      )}
+                    </button>
+                    {lastProfile && (
+                      <div className="flex items-center text-sm text-gray-400">
+                        <Timer className="mr-1" size={16} />
+                        Last profile: {lastProfile}
+                      </div>
+                    )}
+                  </div>
+                  {profilingData.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-medium mb-2">Recent Profiling Data</h4>
+                      <div className="text-xs grid grid-cols-5 gap-2">
+                        <div className="font-medium">Time</div>
+                        <div className="font-medium">CPU</div>
+                        <div className="font-medium">Memory</div>
+                        <div className="font-medium">Render</div>
+                        <div className="font-medium">Network</div>
+                        {profilingData.slice(-5).map((data, index) => (
+                          <React.Fragment key={index}>
+                            <div>{data.timestamp}ms</div>
+                            <div>{data.cpu}%</div>
+                            <div>{data.memory}%</div>
+                            <div>{data.render}ms</div>
+                            <div>{data.network}%</div>
+                          </React.Fragment>
+                        ))}
+                      </div>
+                      <button
+                        className="mt-3 px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 text-xs"
+                        onClick={() => setProfilingData([])}
+                      >
+                        Clear Data
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Settings Import/Export */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3 flex items-center">
+                    <FileJson className="mr-2" size={18} />
+                    Settings Import/Export
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button
+                      className="p-3 bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center justify-center"
+                      onClick={exportSettings}
+                    >
+                      <DownloadCloud className="mr-2" size={18} />
+                      Export Settings
+                    </button>
+                    <button
+                      className="p-3 bg-green-600 rounded-lg hover:bg-green-700 flex items-center justify-center"
+                      onClick={importSettings}
+                    >
+                      <Upload className="mr-2" size={18} />
+                      Import Settings
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* System Info Tab */}
+        {activeTab === "system" && (
+          <div className="space-y-6">
+            <section>
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <Cpu className="mr-2" size={20} />
+                System Information
+              </h2>
+              
+              <div className="space-y-4">
+                {/* System Stats */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-medium flex items-center">
+                      <BarChart3 className="mr-2" size={18} />
+                      Real-time Stats
+                    </h3>
+                    <button
+                      className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 flex items-center"
+                      onClick={updateSystemStats}
+                    >
+                      <RefreshCw className="mr-1" size={16} />
+                      Refresh
+                    </button>
+                  </div>
+                  
+                  {systemStatsLoading ? (
+                    <div className="text-center py-4 text-gray-400">
+                      Loading system stats...
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {[
+                        { label: 'CPU Usage', value: systemStats.cpu, icon: Cpu, color: 'bg-blue-500' },
+                        { label: 'Memory', value: systemStats.memory, icon: Database, color: 'bg-green-500' },
+                        { label: 'Disk I/O', value: systemStats.disk, icon: HardDrive, color: 'bg-purple-500' },
+                        { label: 'Network', value: systemStats.network, icon: Activity, color: 'bg-yellow-500' }
+                      ].map((stat, index) => (
+                        <div key={index}>
+                          <div className="flex justify-between mb-1">
+                            <div className="flex items-center">
+                              <stat.icon className="mr-2" size={16} />
+                              <span>{stat.label}</span>
+                            </div>
+                            <span>{stat.value}%</span>
+                          </div>
+                          <div className="w-full bg-gray-700 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full ${stat.color}`} 
+                              style={{ width: `${stat.value}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {/* System Details */}
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <h3 className="font-medium mb-3 flex items-center">
+                    <Info className="mr-2" size={18} />
+                    System Details
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="text-gray-400">Operating System</div>
+                      <div>XOS v0.3 "Celebi"</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Performance Mode</div>
+                      <div className="capitalize">{performanceMode}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Theme</div>
+                      <div className="capitalize">{themeId}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Surface Style</div>
+                      <div className="capitalize">{surfaceStyle}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Animations</div>
+                      <div>{enableAnimations ? 'Enabled' : 'Disabled'}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Transparency</div>
+                      <div>{reduceTransparency ? 'Reduced' : 'Normal'}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Debug Logging</div>
+                      <div>{debugLogging ? 'Enabled' : 'Disabled'}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Experimental Features</div>
+                      <div>{experimentalFeatures ? 'Enabled' : 'Disabled'}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default DeveloperSettingsApp;

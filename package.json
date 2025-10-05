@@ -1,0 +1,24 @@
+{
+  "name": "xos",
+  "version": "0.3.11",
+  "description": "A React-based web operating system environment",
+  "main": "index.js",
+  "scripts": {
+    "dev": "sh run-dev.sh",
+    "build": "pnpm --filter backend build && pnpm --filter frontend build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "react",
+    "webos",
+    "operating-system",
+    "desktop-environment",
+    "virtual-file-system"
+  ],
+  "author": "yasakei",
+  "license": "GPL-3.0-or-later",
+  "packageManager": "pnpm@10.12.1",
+  "devDependencies": {
+    "@tailwindcss/container-queries": "^0.1.1"
+  }
+}
