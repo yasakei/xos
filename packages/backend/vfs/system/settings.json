@@ -1,0 +1,22 @@
+{
+  "ui": {
+    "theme": "dark",
+    "dockPosition": "bottom",
+    "themeId": "sunset",
+    "surfaceStyle": "glass",
+    "dynamicThemeColors": null,
+    "customThemes": [],
+    "enableAnimations": true,
+    "taskbarSize": "small",
+    "reduceTransparency": false,
+    "customColors": {
+      "primary": "#3b82f6",
+      "secondary": "#64748b",
+      "background": "#0f172a"
+    }
+  },
+  "fileManager": {
+    "viewType": "grid",
+    "favorites": []
+  }
+}

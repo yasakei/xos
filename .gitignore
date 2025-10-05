@@ -1,7 +1,5 @@
 node_modules
 node_modules
-packages/backend/vfs/
-vfs/
 .env
 .DS_Store
 .vscode

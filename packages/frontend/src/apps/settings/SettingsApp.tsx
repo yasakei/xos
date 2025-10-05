@@ -36,7 +36,7 @@ import { vfsApi } from "../file-manager/api";
 const defaultWallpapers = [
   { name: "Default", path: "/api/vfs/static/wallpapers/default.png" },
   { name: "Celebi", path: "/api/vfs/static/wallpapers/celebi.png" },
-  { name: "Buneary", path: "/api/vfs/static/wallpapers/v0.1.jpg" },
+  { name: "Buneary", path: "/api/vfs/static/wallpapers/buneary.jpg" },
 ];
 
 // --- PANELS ---
